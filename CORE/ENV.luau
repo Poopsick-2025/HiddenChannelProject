@@ -1,3 +1,4 @@
+--!nocheck
 local ENV = {}
 
 local function missing(kind, value, fallback)

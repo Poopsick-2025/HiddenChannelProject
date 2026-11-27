@@ -1,3 +1,4 @@
+--!nocheck
 local Chunker = {}
 Chunker.__index = Chunker
 

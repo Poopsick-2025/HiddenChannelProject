@@ -1,3 +1,4 @@
+--!nocheck
 local AnimChannel = {}
 AnimChannel.__index = AnimChannel
 

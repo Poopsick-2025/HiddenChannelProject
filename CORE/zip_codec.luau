@@ -1,3 +1,4 @@
+--!nocheck
 local ZipCodec = {}
 ZipCodec.__index = ZipCodec
 

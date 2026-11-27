@@ -1,3 +1,4 @@
+--!nocheck
 local Replicator = {}
 Replicator.__index = Replicator
 

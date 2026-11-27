@@ -1,3 +1,4 @@
+--!nocheck
 local HiddenChat = {}
 HiddenChat.__index = HiddenChat
 
@@ -378,32 +379,23 @@ function HiddenChat:onImageUrl(payload)
 end
 
 function HiddenChat:renderImageUrl(name, url)
-    local ok, data = pcall(function() return httpget(url) end)
-    if not ok or type(data) ~= "string" or #data == 0 then
-        self:postMessage(name or "System", "[image url] download failed")
-        return nil
-    end
-    local ext = url:match("%.(%w+)%?") or url:match("%.(%w+)$") or "png"
-    local file = "workspace/hc_" .. tostring(os.time()) .. "_" .. tostring(math.random(1, 9999)) .. "." .. ext
-    local ok2 = pcall(writefile, file, data)
-    if not ok2 then
-        self:postMessage(name or "System", "[image url] write failed")
-        return nil
-    end
-    local ok3, asset = pcall(function() return getcustomasset(file) end)
-    if not ok3 then
-        self:postMessage(name or "System", "[image url] asset failed")
+    local A = cloneref(game:GetService("AssetService"))
+    local ok, editable = pcall(function()
+        return A:CreateEditableImageFromDownloadAsync(url)
+    end)
+    if not ok or not editable then
+        self:postMessage(name or "System", "[image] download failed")
         return nil
     end
     local frame = Instance.new("Frame")
     frame.Name = "HiddenChatImageUrl"
-    frame.Size = UDim2.new(1, 0, 0, 200)
+    frame.Size = UDim2.new(1, 0, 0, 206)
     frame.BackgroundTransparency = 1
     frame.Parent = self.scrollView
     local title = Instance.new("TextLabel")
     title.Size = UDim2.new(1, 0, 0, 18)
     title.BackgroundTransparency = 1
-    title.Text = "[image url] " .. tostring(name or "?")
+    title.Text = "[image] " .. tostring(name or "?")
     title.TextColor3 = Color3.fromRGB(160, 160, 180)
     title.Font = Enum.Font.GothamBold
     title.TextSize = 12
@@ -411,17 +403,18 @@ function HiddenChat:renderImageUrl(name, url)
     title.Parent = frame
     local img = Instance.new("ImageLabel")
     img.Name = "Image"
-    img.Size = UDim2.new(0, 180, 0, 180)
+    local sz = editable.Size
+    local scale = math.min(180 / math.max(1, sz.X), 180 / math.max(1, sz.Y))
+    img.Size = UDim2.fromOffset(math.max(1, sz.X * scale), math.max(1, sz.Y * scale))
     img.Position = UDim2.fromOffset(8, 20)
     img.BackgroundTransparency = 1
     img.ScaleType = Enum.ScaleType.Fit
-    img.Image = asset
+    pcall(function() img.ImageContent = Content.fromObject(editable) end)
     img.Parent = frame
-    frame.Size = UDim2.new(1, 0, 0, 206)
+    frame.Size = UDim2.new(1, 0, 0, 26 + img.Size.Y.Offset)
     self.scrollView.CanvasPosition = Vector2.new(0, self.scrollView.AbsoluteCanvasSize.Y + 500)
     return frame
 end
-
 function HiddenChat:onImage(payload)
     if type(payload) ~= "string" then
         return

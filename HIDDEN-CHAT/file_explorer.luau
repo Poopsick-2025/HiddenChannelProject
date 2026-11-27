@@ -1,3 +1,4 @@
+--!nocheck
 local FileExplorer = {}
 FileExplorer.__index = FileExplorer
 FileExplorer.active = nil

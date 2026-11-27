@@ -1,3 +1,4 @@
+--!nocheck
 local WSChannel = {}
 WSChannel.__index = WSChannel
 

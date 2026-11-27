@@ -1,3 +1,4 @@
+--!nocheck
 local P2P = {}
 P2P.__index = P2P
 

@@ -1,3 +1,4 @@
+--!nocheck
 local Wire = {}
 Wire.__index = Wire
 

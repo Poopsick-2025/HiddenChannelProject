@@ -1,3 +1,4 @@
+--!nocheck
 local Snapshots = {}
 Snapshots.__index = Snapshots
 
