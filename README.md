@@ -1,6 +1,11 @@
 # HiddenChannelProject
 
-Private experimental repository for hidden Roblox communication channels.
+Hidden Roblox communication channels: TTS / WebSocket / AnimationSpeed.
+
+Made with AI. Credits of Idea: Farhat.
+
+- Discord username: agent6660
+- Discord user ID: 1156654667095363595
 
 ## Run
 
@@ -8,12 +13,8 @@ Private experimental repository for hidden Roblox communication channels.
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Poopsick-2025/HiddenChannelProject/main/fastscript.luau"))()
 ```
 
-Requires the local WS server (`HiddenChannelProject/server/ws_server.py`) at `ws://127.0.0.1:8767`.
+Requires the local WS server (`server/ws_server.py`) at `ws://127.0.0.1:8767`.
 
-## Structure
+## License
 
-- `CORE/` — ENV, WS, ZIP, chunker, P2P, snapshots
-- `MICUP-TTS/` — HTS1 TTS channel
-- `AnimDATA/` — AnimationSpeed fallback
-- `HIDDEN-CHAT/` — Hidden channel UI + FileExplorer
-- `docs/RU-RU`, `docs/EN-US`
+MIT — public, modifiable, forkable. See LICENSE.
