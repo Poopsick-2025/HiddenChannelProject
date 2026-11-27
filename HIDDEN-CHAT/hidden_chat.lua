@@ -72,6 +72,19 @@ function HiddenChat.new(opts)
     self:findUI()
     self:setupChannel()
     self:attachButton()
+    self._watchdog = game:GetService("RunService").Heartbeat:Connect(function()
+        local now = os.clock()
+        if not self._lastCheck or now - self._lastCheck > 0.5 then
+            self._lastCheck = now
+            if not self.tab or not self.tab.Parent then
+                pcall(function()
+                    self:findUI()
+                    self:setupChannel()
+                    self:setChannel(self.channel)
+                end)
+            end
+        end
+    end)
     if self.ws then
         self.ws:listen("M", function(text)
             self:onMessage(text, "ws")
@@ -415,6 +428,7 @@ function HiddenChat:renderImageUrl(name, url)
     self.scrollView.CanvasPosition = Vector2.new(0, self.scrollView.AbsoluteCanvasSize.Y + 500)
     return frame
 end
+local Hex = loadM("HEX_SRC", "HiddenChannelProject/MICUP-TTS/hex.luau")
 function HiddenChat:onImage(payload)
     if type(payload) ~= "string" then
         return
@@ -427,19 +441,41 @@ function HiddenChat:onImage(payload)
     if not w then
         return
     end
+    w, h = tonumber(w), tonumber(h)
     local palette = {}
     for c in string.gmatch(colors or "", "[^,]+") do
         palette[#palette + 1] = c
     end
-    local strips = {}
-    for piece in string.gmatch(stripData or "", "[^|]+") do
-        strips[#strips + 1] = piece
-    end
-    local Viewer = loadM("VIEWER_SRC", "HiddenChannelProject/MICUP-TTS/image_viewer.luau")
-    if not Viewer then
-        self:postMessage(name or "System", "[image] viewer missing")
+    local A = cloneref(game:GetService("AssetService"))
+    local ok, editable = pcall(function()
+        return A:CreateEditableImage({ Size = Vector2.new(w, h) })
+    end)
+    if not ok or not editable then
+        self:postMessage(name or "System", "[image] editable failed")
         return
     end
+    local buf = buffer.create(w * h * 4)
+    local idx = 1
+    for piece in string.gmatch(stripData or "", "[^|]+") do
+        local hex = Hex and Hex.decode(piece)
+        if hex then
+            for i = 1, #hex do
+                local code = string.byte(hex, i) + 1
+                local col = palette[code] or "#00000000"
+                local r = tonumber(col:sub(2, 3), 16) or 0
+                local g = tonumber(col:sub(4, 5), 16) or 0
+                local b = tonumber(col:sub(6, 7), 16) or 0
+                local a = tonumber(col:sub(8, 9), 16) or 255
+                buffer.writeu8(buf, idx, r); idx = idx + 1
+                buffer.writeu8(buf, idx, g); idx = idx + 1
+                buffer.writeu8(buf, idx, b); idx = idx + 1
+                buffer.writeu8(buf, idx, a); idx = idx + 1
+            end
+        end
+    end
+    pcall(function()
+        editable:WritePixelsBuffer(Vector2.new(0, 0), Vector2.new(w, h), buf)
+    end)
     local frame = Instance.new("Frame")
     frame.Name = "HiddenChatImage"
     frame.Size = UDim2.new(1, 0, 0, 24)
@@ -454,19 +490,18 @@ function HiddenChat:onImage(payload)
     title.TextSize = 12
     title.TextXAlignment = Enum.TextXAlignment.Left
     title.Parent = frame
-    local v = Viewer.new({
-        width = tonumber(w), height = tonumber(h), strip = tonumber(s),
-        palette = palette, forceWhiteBg = true, parent = frame,
-    })
-    v.frame.Position = UDim2.fromOffset(8, 20)
-    v.frame.Parent = frame
-    for i, strip in ipairs(strips) do
-        v:renderStrip(i - 1, strip)
-    end
-    frame.Size = UDim2.new(1, 0, 0, v.frame.AbsoluteSize.Y + 26)
+    local img = Instance.new("ImageLabel")
+    img.Name = "Image"
+    local scale = math.min(180 / math.max(1, w), 180 / math.max(1, h))
+    img.Size = UDim2.fromOffset(math.max(1, w * scale), math.max(1, h * scale))
+    img.Position = UDim2.fromOffset(8, 20)
+    img.BackgroundTransparency = 1
+    img.ScaleType = Enum.ScaleType.Fit
+    pcall(function() img.ImageContent = Content.fromObject(editable) end)
+    img.Parent = frame
+    frame.Size = UDim2.new(1, 0, 0, 26 + img.Size.Y.Offset)
     self.scrollView.CanvasPosition = Vector2.new(0, self.scrollView.AbsoluteCanvasSize.Y + 500)
 end
-
 function HiddenChat:findUI()
     local ok, ec = pcall(function()
         return game:GetService("CoreGui"):WaitForChild("ExperienceChat", 5)
@@ -603,6 +638,20 @@ function HiddenChat:setupChannel()
     if l0 and l0.Text ~= "Hidden" then
         l0.Text = "Hidden"
         l0.RichText = false
+    end
+    local refTab = cc:FindFirstChild("1") or cc:FindFirstChild("2")
+    local refTabBtn = refTab and refTab:FindFirstChild("ChannelTab")
+    local refLabel = refTabBtn and refTabBtn:FindFirstChild("TextLabel")
+    if l0 and refLabel then
+        local function syncTab()
+            pcall(function()
+                l0.TextTransparency = refLabel.TextTransparency
+                l0.TextStrokeTransparency = refLabel.TextStrokeTransparency
+            end)
+        end
+        syncTab()
+        refLabel:GetPropertyChangedSignal("TextTransparency"):Connect(syncTab)
+        refLabel:GetPropertyChangedSignal("TextStrokeTransparency"):Connect(syncTab)
     end
     local srcDot = cc:FindFirstChild("2")
     srcDot = srcDot and srcDot:FindFirstChild("ChannelTab")
